@@ -1,0 +1,49 @@
+---
+# [dec17] rm BIGIP config #6
+# Notes:
+# - bip_user and bip_pass must be defined (eg. ansible_vault edit secure.yml)
+# - BIP server and port can be populated in env vars F5_SERVER/F5_SERVER_PORT or directly in PB env sect
+
+
+- name: "Remove BIP Config #6"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    bip: 13.250.138.200
+    secgrp: SD-SG-HZ
+
+  tasks:
+  - name: del VS
+    bigip_virtual_server:
+      name: VS-Hackazon
+      state: absent
+      user: "{{ bip_user }}"
+      password: "{{ bip_pass }}"
+      server: "{{ bip }}"
+      server_port: 8443
+      validate_certs: no
+
+  - name: del pool
+    bigip_pool:
+      name: "hpool"
+      state: absent
+      user: "{{ bip_user }}"
+      password: "{{ bip_pass }}"
+      server: "{{ bip }}"
+      server_port: 8443
+      validate_certs: no
+
+  - name: del SD-iApp
+    bigip_iapp_service:
+      name: SDiApp-HZ
+      template: f5.service_discovery
+      state: absent
+      user: "{{ bip_user }}"
+      password: "{{ bip_pass }}"
+      server: "{{ bip }}"
+      server_port: 8443
+      validate_certs: no
+
+

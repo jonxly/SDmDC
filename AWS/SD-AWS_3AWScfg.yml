@@ -1,0 +1,76 @@
+---
+# [dec17] push config to AWS #3
+# Notes:
+# - AWS credentials must be defined and populated (akey and skey) eg. in ansible-vault
+#   eg. ansible-playbook xxx.yml --vault-id @.vault_pw -e @secure.yml
+
+- name: "Push Config to AWS #3"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    region: "ap-southeast-1"  # SG
+    vpc: "vpc-f3599794"  # SDmDC VPC
+    secgrp: SD-SG-HZ
+
+  environment:
+    AWS_ACCESS_KEY: "{{ akey }}"
+    AWS_SECRET_KEY: "{{ skey }}"
+    AWS_REGION: "{{ region }}"
+
+  tasks:
+  - name: Get facts
+    ec2_group_facts:
+      filters:
+        group-name: SDmDC*
+    register: SGfacts
+  - set_fact:
+      bip_SG: "{{ SGfacts.security_groups[0].group_id }}"
+
+  - name: Create secgrp
+    ec2_group:
+      name: "{{ secgrp }}"
+      description: "secgrp for hackazon backend"
+      vpc_id: "{{ vpc }}"
+      rules:
+        - proto: tcp
+          from_port: 80
+          to_port: 80
+          group_id: "{{ bip_SG }}"
+      tags:
+        Name: "{{secgrp}}"
+
+  #- name: deploy EC2
+  #  ec2:
+  #    instance_type: t2.micro
+  #    image: ami-900169ec
+  #    vpc_subnet_id: subnet-f5f37ebc  # SDmDC-pub-subnet
+  #    key_name: SDmDC-KP
+  #    group: "{{ secgrp }}"
+  #    instance_tags:
+  #      Name: SD-HZ
+
+  - name: create LC
+    ec2_lc:
+      name: SD-LC-HZ
+      image_id: ami-900169ec
+      instance_type: t2.micro
+      key_name: SDmDC-KP
+      state: present
+      security_groups: "{{ secgrp }}"
+
+  - name: create ASG
+    ec2_asg:
+      name: SD-ASG-HZ
+      launch_config_name: SD-LC-HZ
+      availability_zones: ap-southeast-1a
+      vpc_zone_identifier: subnet-f5f37ebc  # SDmDC-pub-subnet
+      default_cooldown: 180
+      health_check_period: 180
+      max_size: 5
+      min_size: 0
+      desired_capacity: 1
+      tags:
+      - Name: SD-HZ
+        propagate_at_launch: yes

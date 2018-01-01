@@ -1,0 +1,95 @@
+---
+# [dec17] push config to BIGIP #2
+# Notes:
+# - bip_user and bip_pass must be defined (eg. ansible_vault edit secure.yml)
+# - BIP server and port can be populated in env vars F5_SERVER/F5_SERVER_PORT, or directly in PB env sect
+
+- name: "Push Config to BIP #2"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    region: "ap-southeast-1"  # SG
+    vpc: "vpc-f3599794"  # SDmDC VPC
+    bip: 13.250.138.200
+    secgrp: SD-SG-HZ
+
+  environment:
+    AWS_ACCESS_KEY: "{{ akey }}"
+    AWS_SECRET_KEY: "{{ skey }}"
+    AWS_REGION: "{{ region }}"
+
+  tasks:
+  - name: deploy SD-iApp
+    bigip_iapp_service:
+      name: SDiApp-HZ
+      template: f5.service_discovery
+      state: present
+      parameters:
+        variables:
+        - name: cloud__cloud_provider
+          value: aws
+        - name: cloud__aws_use_role
+          value: no
+        - name: cloud__aws_role_arn
+        - name: cloud__aws_external_id
+        - name: cloud__aws_region
+          value: ap-southeast-1
+        - name: pool__pool_to_use
+          value: "/Common/hpool"
+        - name: pool__member_conn_limit
+          value: 0
+        - name: pool__member_port
+          value: 80
+        - name: pool__interval
+          value: 30
+        - name: pool__public_private
+          value: private
+        - name: pool__tag_key
+          value: Name
+        - name: pool__tag_value
+          value: SD-HZ
+      user: "{{ bip_user }}"
+      password: "{{ bip_pass }}"
+      server: "{{ bip }}"
+      server_port: 8443
+      validate_certs: no
+
+  - name: create pool
+    bigip_pool:
+      name: hpool
+      monitors:
+      - http
+      monitor_type: and_list
+      user: "{{ bip_user }}"
+      password: "{{ bip_pass }}"
+      server: "{{ bip }}"
+      server_port: 8443
+      validate_certs: no
+
+#  # todo: auto-populate BIP private IP in VS dest
+#  - name: get facts
+#    ec2_instance_facts:
+#      filters:
+#        tags: "Name": "Big-IP: SDmDC"
+#    register: EC2facts
+#  - set_fact:
+#      bip_SG: "{{ EC2facts.network_interfaces.private_ip_address }}"
+
+  - name: create VS
+    bigip_virtual_server:
+      name: VS-Hackazon
+      destination: 10.6.10.224
+      port: 80
+      snat: Automap
+      pool: hpool
+      all_profiles:
+      - /Common/tcp
+      - /Common/http
+      user: "{{ bip_user }}"
+      password: "{{ bip_pass }}"
+      server: "{{ bip }}"
+      server_port: 8443
+      validate_certs: no
+

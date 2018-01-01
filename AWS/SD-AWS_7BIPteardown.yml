@@ -1,0 +1,24 @@
+# [dec17] tear down BIP instance #7 final
+# notes:
+# - store AWS credentials (akey and skey) in ansible-vault
+#   eg. ansible-playbook xxx.yml --vault-id @.vault_pw -e @secure.yml
+# - pass in Stack name fr CLI eg. ansible-playbook xxx.yml -e "stack=SDmDC"
+# - takes abt 2min to complete
+
+- name: "Tear down BIP #7"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    # stack: "SDmDC-v1a"  # pass in fr CLI
+
+  tasks:
+  - name: Teardown BIP CFT
+    cloudformation:
+      aws_access_key: "{{ akey }}"
+      aws_secret_key: "{{ skey }}"
+      stack_name: "{{ stack }}"
+      state: "absent"
+      region: "ap-southeast-1"
+      validate_certs : no

@@ -1,0 +1,43 @@
+# [dec17] deploy single-NIC BIP on existing VPC, #1
+# notes:
+# - prereqs: VPC setup with SDmDC prefix and public subnet where EC2s will be deployed
+# - AWS credentials must be defined and populated (akey and skey) eg. in ansible-vault
+#   eg. ansible-playbook xxx.yml --vault-id @.vault_pw -e @secure.yml
+# - pass in Stack name fr CLI eg. ansible-playbook xxx.yml -e "stack=SDmDC"
+# - can ssh after 1130min on T2.large, UI up after 13min
+
+- name: "Launch AWS single-NIC BIGIP #1"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  tasks:
+  - name: Launch BIG-IP CFT
+    cloudformation:
+      aws_access_key: "{{ akey }}"
+      aws_secret_key: "{{ skey }}"
+      stack_name: "{{ stack }}"
+      state: "present"
+      region: "ap-southeast-1"
+      disable_rollback: true
+      template: "../templates/f5-SD-deploy-bip_v1a.template"
+      template_parameters:
+        Vpc: "vpc-f3599794"  # SDmDC VPC
+        licenseKey1: "XXXXX-BRRPM-XXXXX-OWHHT-XXXXXXX"  # put in new eval best lic
+        restrictedSrcAddress: "111.XXX.XXX.76/24"       # whitelist IP to access Hackazon n BIP mgmt
+        restrictedSrcAddressApp: "111.XXX.XXX.76/24"
+        sshKey: "SDmDC-KP"
+        subnet1Az1: "subnet-f5f37ebc"
+        timezone: "Asia/Singapore"
+      validate_certs : no
+
+  - name: get facts
+    cloudformation_facts:
+      aws_access_key: "{{ akey }}"
+      aws_secret_key: "{{ skey }}"
+      region: "ap-southeast-1"
+      stack_name: "{{ stack }}"
+    register: bigip_ip
+  - set_fact:
+      bip_ip: "{{ bigip_ip['ansible_facts']['cloudformation']['SDmDC']['stack_outputs']['Bigip1subnet1Az1SelfEipAddress']}}"
+

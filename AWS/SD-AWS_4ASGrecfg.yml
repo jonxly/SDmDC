@@ -1,0 +1,28 @@
+---
+# [dec17] Scale ASG to number of desired HZ instances #4
+# Notes:
+# - AWS credentials must be defined and populated (akey and skey) eg. in ansible-vault
+# - require 3mins betw changes
+# - put in number of desired instances at CLI
+#   eg. ansible-playbook SDmDC/SD-configAWSinstance.yml -e "desired=3"
+
+- name: "Scale ASG to desired number of instances #4"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    region: "ap-southeast-1"  # SG
+    vpc: "vpc-f3599794"  # SDmDC VPC
+
+  environment:
+    AWS_ACCESS_KEY: "{{ akey }}"
+    AWS_SECRET_KEY: "{{ skey }}"
+    AWS_REGION: "{{ region }}"
+
+  tasks:
+  - name: mod ASG desired instances
+    ec2_asg:
+      name: SD-ASG-HZ
+      launch_config_name: SD-LC-HZ
+      desired_capacity: "{{ desired }}"

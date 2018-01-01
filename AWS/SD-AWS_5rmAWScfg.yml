@@ -1,0 +1,38 @@
+---
+# [dec17] rm AWS config #5
+# Notes:
+# - AWS credentials must be defined and populated (akey and skey) eg. in ansible-vault
+#   eg. ansible-playbook xxx.yml --vault-id @.vault_pw -e @secure.yml
+
+- name: "Remove AWS Config #5"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    secgrp: SD-SG-HZ
+    region: "ap-southeast-1"  # SG
+
+  environment:
+    AWS_ACCESS_KEY: "{{ akey }}"
+    AWS_SECRET_KEY: "{{ skey }}"
+    AWS_REGION: "{{ region }}"
+
+  tasks:
+  - name: del ASG
+    # terminating the ASG will term all e EC2s, takes a while
+    ec2_asg:
+      name: SD-ASG-HZ
+      launch_config_name: SD-LC-HZ
+      state: absent
+
+  - name: del LC
+    ec2_lc:
+      name: SD-LC-HZ
+      state: absent
+      # instance_type: t2.micro
+
+  - name: del secgrp
+    ec2_group:
+      name: "{{ secgrp }}"
+      state: absent

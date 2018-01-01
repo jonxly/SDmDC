@@ -10,7 +10,7 @@
    ]
   }
  },
- "Description": "Template Version 2.8.0: AWS CloudFormation Template for creating a 1NIC BIG-IP in an existing VPC **WARNING** This template creates Amazon EC2 Instances. You will be billed for the AWS resources used if you create a stack from this template.",
+ "Description": "[dec17] SDmDC CFT v0.1 based on Template Version 2.8.0: for creating a 1NIC BIG-IP in an existing VPC **WARNING** This template creates Amazon EC2 Instances. You will be billed for the AWS resources used if you create a stack from this template.",
  "Mappings": {
   "BigipRegionMap": {
    "ap-northeast-1": {
@@ -242,7 +242,7 @@
      "default": "Subnet2 in AZ1"
     },
     "timezone": {
-     "default": "Timezone (Olson)"
+     "default": "Asia/Singapore"
     }
    }
   },
@@ -331,6 +331,7 @@
    }
   }
  },
+
  "Parameters": {
   "Vpc": {
    "ConstraintDescription": "This must be an existing VPC within the working region.",
@@ -397,7 +398,7 @@
     "m4.16xlarge"
    ],
    "ConstraintDescription": "Must be a valid EC2 instance type for BIG-IP",
-   "Default": "m3.2xlarge",
+   "Default": "t2.large",
    "Description": "Size of the F5 BIG-IP Virtual Instance",
    "Type": "String"
   },
@@ -456,6 +457,7 @@
    "Type": "String"
   }
  },
+
  "Resources": {
   "Bigip1Instance": {
    "Metadata": {
@@ -706,6 +708,7 @@
            "done\n",
            "date\n",
            "### START CUSTOM CONFIGURTION\n",
+           "tmsh modify sys http auth-pam-idle-timeout 9999999\n",
            "### END CUSTOM CONFIGURATION"
           ]
          ]
@@ -1016,7 +1019,7 @@
   },
   "bigipExternalSecurityGroup": {
    "Properties": {
-    "GroupDescription": "Public or External interface rules, including BIG-IP management",
+    "GroupDescription": "Public or External interface rules, including BIG-IP mgmt",
     "SecurityGroupIngress": [
      {
       "CidrIp": {
